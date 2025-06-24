@@ -58,8 +58,12 @@ where
     ) -> EitherEvmResult<DB::Error, OpHaltReason, OpTransactionError> {
         match result {
             Ok(result) => {
-                // Map the halt reason
-                Ok(result.map_haltreason(OpHaltReason::Base))
+                // Map HaltReason to OpHaltReason::Base
+                let mapped_result = ResultAndState {
+                    result: result.result.map_haltreason(OpHaltReason::Base),
+                    state: result.state,
+                };
+                Ok(mapped_result)
             }
             Err(e) => Err(self.map_eth_err(e)),
         }
@@ -72,8 +76,9 @@ where
     ) -> EitherExecResult<DB::Error, OpHaltReason, OpTransactionError> {
         match result {
             Ok(result) => {
-                // Map the halt reason
-                Ok(result.map_haltreason(OpHaltReason::Base))
+                // Map HaltReason to OpHaltReason::Base
+                let mapped_result = result.map_haltreason(OpHaltReason::Base);
+                Ok(mapped_result)
             }
             Err(e) => Err(self.map_eth_err(e)),
         }
