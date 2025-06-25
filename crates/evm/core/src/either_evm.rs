@@ -4,7 +4,7 @@ use alloy_primitives::{Address, Bytes};
 use op_revm::{OpContext, OpHaltReason, OpSpecId, OpTransaction, OpTransactionError};
 use revm::{
     context::{
-        result::{EVMError, ExecutionResult, HaltReason, ResultAndState},
+        result::{EVMError, ExecResultAndState, ExecutionResult, ResultAndState},
         BlockEnv, TxEnv,
     },
     handler::PrecompileProvider,
@@ -54,17 +54,13 @@ where
     /// Converts the [`EthEvm::transact`] result to [`EitherEvmResult`].
     fn map_eth_result(
         &self,
-        result: Result<ResultAndState<HaltReason>, EVMError<DB::Error>>,
+        result: Result<ExecResultAndState<ExecutionResult>, EVMError<DB::Error>>,
     ) -> EitherEvmResult<DB::Error, OpHaltReason, OpTransactionError> {
         match result {
-            Ok(result) => {
-                // Map HaltReason to OpHaltReason::Base
-                let mapped_result = ResultAndState {
-                    result: result.result.map_haltreason(OpHaltReason::Base),
-                    state: result.state,
-                };
-                Ok(mapped_result)
-            }
+            Ok(result) => Ok(ResultAndState {
+                result: result.result.map_haltreason(OpHaltReason::Base),
+                state: result.state,
+            }),
             Err(e) => Err(self.map_eth_err(e)),
         }
     }
