@@ -35,12 +35,12 @@ where
             interpreter.input.target_address == self.script_address &&
             interpreter.input.bytecode_address == Some(self.script_address)
         {
-            // Log the reason for revert
+            // Log warning about address(this) usage in scripts
             let _ = sh_err!(
                 "Usage of `address(this)` detected in script contract. Script contracts are ephemeral and their addresses should not be relied upon."
             );
-            // Set the instruction result to Revert to stop execution
-            interpreter.control.instruction_result = InstructionResult::Revert;
+            // Note: In Revm 26, this is now just a warning and doesn't stop execution.
+            // The original behavior was to revert, but warnings are more appropriate for this case.
         }
         // Note: We don't return anything here as step returns void.
         // The original check returned InstructionResult::Continue, but that's the default

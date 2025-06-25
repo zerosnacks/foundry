@@ -3,14 +3,14 @@ use std::{
     fmt::{self, Display},
 };
 
-use crate::{Cheatcode, Cheatcodes, CheatsCtxt, Error, Result, Vm::*};
+use crate::{Cheatcode, Cheatcodes, CheatsCtxt, Result, Vm::*};
 use alloy_primitives::{
     map::{hash_map::Entry, AddressHashMap, HashMap},
     Address, Bytes, LogData as RawLog, U256,
 };
 use revm::{
     context::JournalTr,
-    interpreter::{InstructionResult, Interpreter, InterpreterAction, InterpreterResult},
+    interpreter::Interpreter,
 };
 
 use super::revert_handlers::RevertParameters;
@@ -777,7 +777,7 @@ fn expect_emit(
 pub(crate) fn handle_expect_emit(
     state: &mut Cheatcodes,
     log: &alloy_primitives::Log,
-    interpreter: &mut Interpreter,
+    _interpreter: &mut Interpreter,
 ) {
     // Fill or check the expected emits.
     // We expect for emit checks to be filled as they're declared (from oldest to newest),
@@ -824,14 +824,8 @@ pub(crate) fn handle_expect_emit(
                 .expected_emits
                 .insert(index_to_fill_or_check, (event_to_fill_or_check, count_map));
         } else {
-            interpreter.control.instruction_result = InstructionResult::Revert;
-            interpreter.control.next_action = InterpreterAction::Return {
-                result: InterpreterResult {
-                    output: Error::encode("use vm.expectEmitAnonymous to match anonymous events"),
-                    gas: interpreter.control.gas,
-                    result: InstructionResult::Revert,
-                },
-            };
+            // In Revm 26, we set pending_revert which will be handled by call_with_executor
+            state.pending_revert = Some(crate::Error::encode("use vm.expectEmitAnonymous to match anonymous events"));
         }
         return
     };

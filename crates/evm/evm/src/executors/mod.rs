@@ -823,7 +823,7 @@ pub struct RawCallResult {
 impl Default for RawCallResult {
     fn default() -> Self {
         Self {
-            exit_reason: InstructionResult::Continue,
+            exit_reason: InstructionResult::Stop, // Default exit reason - execution completed normally
             reverted: false,
             has_state_snapshot_failure: false,
             result: Bytes::new(),

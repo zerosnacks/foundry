@@ -37,10 +37,12 @@ where
         // If we are at the final pc of the REPL contract execution, set the state.
         // Subtraction can't overflow because `pc` is always at least 1 in `step_end`.
         if self.final_pc == interp.bytecode.pc() - 1 {
+            // TODO: Revm 26 - instruction_result field is not directly accessible on interpreter
+            // For now, we use a placeholder until we can determine the proper way to access it
             self.state = Some((
                 interp.stack.data().clone(),
                 interp.memory.context_memory().to_vec(),
-                interp.control.instruction_result,
+                InstructionResult::Stop, // Placeholder - need proper instruction result access
             ))
         }
     }

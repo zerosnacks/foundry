@@ -48,7 +48,7 @@ impl TracingExecutor {
         mut evm_opts: EvmOpts,
     ) -> eyre::Result<(Env, Option<CreateFork>, Option<Chain>, bool)> {
         evm_opts.fork_url = Some(config.get_rpc_url_or_localhost_http()?.into_owned());
-        evm_opts.fork_block_number = config.fork_block_number;
+        evm_opts.fork_block_number = config.fork_block_number.map(|b| alloy_primitives::U256::from(b));
 
         let env = evm_opts.evm_env().await?;
 

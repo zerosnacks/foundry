@@ -870,13 +870,10 @@ impl Inspector<EthEvmContext<&mut dyn DatabaseExt>> for InspectorStackRefMut<'_>
                 &mut self.revert_diag
             ],
             |inspector| {
-                let mut out = None;
-                if let Some(output) = inspector.call(ecx, call) {
-                    if output.result.result != InstructionResult::Continue {
-                        out = Some(Some(output));
-                    }
-                }
-                out
+                // In Revm 26, inspectors return Option<CallOutcome>
+                // Some(outcome) means the inspector wants to override the call
+                // None means continue with normal execution
+                inspector.call(ecx, call).map(Some)
             },
         );
 
@@ -893,16 +890,16 @@ impl Inspector<EthEvmContext<&mut dyn DatabaseExt>> for InspectorStackRefMut<'_>
             }
 
             if let Some(output) = cheatcodes.call_with_executor(ecx, call, self.inner) {
-                if output.result.result != InstructionResult::Continue {
-                    return Some(output);
-                }
+                // In Revm 26, cheatcodes return Option<CallOutcome>
+                // Some(outcome) means cheatcode wants to override the call
+                return Some(output);
             }
         }
 
         if self.enable_isolation && !self.in_inner_context && ecx.journaled_state.depth == 1 {
             match call.scheme {
                 // Isolate CALLs
-                CallScheme::Call | CallScheme::ExtCall => {
+                CallScheme::Call => {
                     let input = call.input.bytes(ecx);
                     let (result, _) = self.transact_inner(
                         ecx,
@@ -918,7 +915,7 @@ impl Inspector<EthEvmContext<&mut dyn DatabaseExt>> for InspectorStackRefMut<'_>
                     });
                 }
                 // Mark accounts and storage cold before STATICCALLs
-                CallScheme::StaticCall | CallScheme::ExtStaticCall => {
+                CallScheme::StaticCall => {
                     let JournaledState { state, warm_preloaded_addresses, .. } =
                         &mut ecx.journaled_state.inner;
                     for (addr, acc_mut) in state {
@@ -939,7 +936,7 @@ impl Inspector<EthEvmContext<&mut dyn DatabaseExt>> for InspectorStackRefMut<'_>
                     }
                 }
                 // Process other variants as usual
-                CallScheme::CallCode | CallScheme::DelegateCall | CallScheme::ExtDelegateCall => {}
+                CallScheme::CallCode | CallScheme::DelegateCall => {}
             }
         }
 

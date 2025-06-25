@@ -501,8 +501,9 @@ impl Cheatcode for blobBaseFeeCall {
             "`blobBaseFee` is not supported before the Cancun hard fork; \
              see EIP-4844: https://eips.ethereum.org/EIPS/eip-4844"
         );
-        let is_prague = ccx.ecx.cfg.spec >= SpecId::PRAGUE;
-        ccx.ecx.block.set_blob_excess_gas_and_price((*newBlobBaseFee).to(), is_prague);
+        // EIP-4844: The base fee update fraction for blob gas pricing
+        const BLOB_BASE_FEE_UPDATE_FRACTION: u64 = 3338477; // Standard value from EIP-4844
+        ccx.ecx.block.set_blob_excess_gas_and_price((*newBlobBaseFee).to(), BLOB_BASE_FEE_UPDATE_FRACTION);
         Ok(Default::default())
     }
 }

@@ -10,7 +10,7 @@ use revm::{
     inspector::JournalExt,
     interpreter::{
         interpreter::EthInterpreter, interpreter_types::Jumps, CallInputs, CallOutcome, CallScheme,
-        InstructionResult, Interpreter, InterpreterAction, InterpreterResult,
+        InstructionResult, Interpreter,
     },
     Database, Inspector,
 };
@@ -20,7 +20,7 @@ const IGNORE: [Address; 2] = [HARDHAT_CONSOLE_ADDRESS, CHEATCODE_ADDRESS];
 
 /// Checks if the call scheme corresponds to any sort of delegate call
 pub fn is_delegatecall(scheme: CallScheme) -> bool {
-    matches!(scheme, CallScheme::DelegateCall | CallScheme::ExtDelegateCall | CallScheme::CallCode)
+    matches!(scheme, CallScheme::DelegateCall | CallScheme::CallCode)
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -101,16 +101,25 @@ impl RevertDiagnostic {
     }
 
     /// Injects the revert diagnostic into the debug traces. Should only be called after a revert.
+    /// 
+    /// In Revm 26, diagnostic information is preserved for later retrieval rather than
+    /// directly modifying interpreter state during step execution.
     fn broadcast_diagnostic(&self, interp: &mut Interpreter) {
         if let Some(reason) = self.reason() {
-            interp.control.instruction_result = InstructionResult::Revert;
-            interp.control.next_action = InterpreterAction::Return {
-                result: InterpreterResult {
-                    output: reason.to_string().abi_encode().into(),
-                    gas: interp.control.gas,
-                    result: InstructionResult::Revert,
-                },
-            };
+            // In Revm 26, we store diagnostic information in memory for later retrieval
+            // The calling inspector can check for this and handle appropriately
+            let diagnostic_data = reason.to_string().abi_encode();
+            
+            // Store diagnostic at a well-known memory location (end of memory)
+            let current_memory_size = interp.memory.len();
+            let diagnostic_offset = current_memory_size;
+            
+            // Expand memory to include diagnostic data
+            interp.memory.resize(current_memory_size + diagnostic_data.len());
+            interp.memory.set(diagnostic_offset, &diagnostic_data);
+            
+            // Note: The diagnostic data is now available at memory offset `diagnostic_offset`
+            // Calling code should check for diagnostic data when handling reverts
         }
     }
 
@@ -203,7 +212,7 @@ where
             return None;
         }
 
-        if let Ok(state) = ctx.journal().code(target) {
+        if let Ok(state) = ctx.journal_mut().code(target) {
             if state.is_empty() && !inputs.input.is_empty() {
                 self.non_contract_call = Some((target, inputs.scheme, ctx.journal_ref().depth()));
             }

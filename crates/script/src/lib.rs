@@ -576,7 +576,7 @@ pub struct ScriptConfig {
 impl ScriptConfig {
     pub async fn new(config: Config, evm_opts: EvmOpts) -> Result<Self> {
         let sender_nonce = if let Some(fork_url) = evm_opts.fork_url.as_ref() {
-            next_nonce(evm_opts.sender, fork_url, evm_opts.fork_block_number).await?
+            next_nonce(evm_opts.sender, fork_url, evm_opts.fork_block_number.map(|n| n.to::<u64>())).await?
         } else {
             // dapptools compatibility
             1

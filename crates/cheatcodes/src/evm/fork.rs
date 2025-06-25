@@ -319,7 +319,7 @@ fn create_fork_request(
     let rpc_endpoint = ccx.state.config.rpc_endpoint(url_or_alias)?;
     let url = rpc_endpoint.url()?;
     let mut evm_opts = ccx.state.config.evm_opts.clone();
-    evm_opts.fork_block_number = block;
+    evm_opts.fork_block_number = block.map(|b| alloy_primitives::U256::from(b));
     evm_opts.fork_retries = rpc_endpoint.config.retries;
     evm_opts.fork_retry_backoff = rpc_endpoint.config.retry_backoff;
     if let Some(Ok(auth)) = rpc_endpoint.auth {
