@@ -188,7 +188,6 @@ jobs:
         working-directory: ./npm
         env:
           ARTIFACT_DIR: ${{ steps.paths.outputs.artifact_dir }}
-        shell: bash
         run: |
           set -euo pipefail
           SRC="./@foundry-rs/forge-${{ matrix.os }}-${{ matrix.arch }}"
