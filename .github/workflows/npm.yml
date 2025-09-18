@@ -184,24 +184,33 @@ jobs:
             fi
           fi
 
-      - name: Publish ${{ matrix.os }}-${{ matrix.arch }} Binary
+      - name: Stage Package Into Isolated Publish Directory
         working-directory: ./npm
+        env:
+          ARTIFACT_DIR: ${{ steps.paths.outputs.artifact_dir }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          SRC="./@foundry-rs/forge-${{ matrix.os }}-${{ matrix.arch }}"
+          DEST="${ARTIFACT_DIR}/publish/@foundry-rs/forge-${{ matrix.os }}-${{ matrix.arch }}"
+          mkdir -p "${ARTIFACT_DIR}/publish/@foundry-rs"
+          rm -rf "$DEST"
+          cp -a "$SRC" "$DEST"
+
+      - name: Publish ${{ matrix.os }}-${{ matrix.arch }} Binary
+        working-directory: ${{ steps.paths.outputs.artifact_dir }}/publish
         env:
           PROVENANCE: true
           VERSION_NAME: ${{ steps.release-version.outputs.RELEASE_VERSION }}
           RELEASE_VERSION: ${{ steps.release-version.outputs.RELEASE_VERSION }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          ARTIFACT_DIR: ${{ steps.paths.outputs.artifact_dir }}
         run: |
           set -euo pipefail
-          SRC="./@foundry-rs/forge-${{ matrix.os }}-${{ matrix.arch }}"
-          DEST="${ARTIFACT_DIR}/publish/@foundry-rs/forge-${{ matrix.os }}-${{ matrix.arch }}"
-          mkdir -p "${ARTIFACT_DIR}/publish/@foundry-rs"
-          cp -a "$SRC" "$DEST"
-          ls -la "$DEST"
-          bun ./scripts/publish.ts "$DEST"
-          echo "Published @foundry-rs/forge-${{ matrix.os }}-${{ matrix.arch }}"
+          PKG="@foundry-rs/forge-${{ matrix.os }}-${{ matrix.arch }}"
+          ls -la "$PKG"
+          bun "$GITHUB_WORKSPACE/npm/scripts/publish.ts" "$PKG"
+          echo "Published $PKG"
 
   publish-meta:
     permissions:
